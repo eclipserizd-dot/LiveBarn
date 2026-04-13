@@ -1,0 +1,216 @@
+git init
+git add .
+git commit -m "hockey app"
+git branch -M main
+git remote add origin YOUR_GITHUB_REPO
+git push -u origin main
+/************************************************************
+ REAL STARTUP VERSION — LIVEBARN / HUDL STYLE PLATFORM
+ Stack: React (Vite/Next compatible) + Firebase + Stripe hooks
+
+ NOTE:
+ - This is production architecture-ready code
+ - Requires Firebase + Stripe setup (keys not included)
+ - Designed to scale into SaaS hockey platform
+************************************************************/
+
+import { useEffect, useState } from "react";
+
+/***********************
+ IMPORTS (NO UI LIBRARIES)
+************************/
+import { Play, CreditCard, MessageSquare, LogIn, LogOut } from "lucide-react";
+
+/***********************
+ FIREBASE PLACEHOLDERS (CONNECT YOUR OWN PROJECT)
+************************/
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+/***********************
+ STRIPE PLACEHOLDER (SERVER REQUIRED)
+************************/
+async function createStripeCheckout(planId) {
+  // In production: call your backend API
+  // POST /api/checkout-session
+  return {
+    url: "https://stripe.com/checkout-session-demo"
+  };
+}
+
+/***********************
+ MOCK DATABASE (replace with Firestore)
+************************/
+const rinks = [
+  { id: "1", name: "Chicago Ice Arena", location: "Chicago, IL", stream: "https://example.com/stream1" },
+  { id: "2", name: "Oak Brook Ice Center", location: "Oak Brook, IL", stream: "https://example.com/stream2" }
+];
+
+const games = [
+  { id: "g1", home: "Hawks", away: "Wolves", time: "6:00 PM", score: "2-1", live: true }
+];
+
+const plans = [
+  { id: "basic", name: "Basic", price: 9 },
+  { id: "pro", name: "Pro", price: 19 },
+  { id: "elite", name: "Elite", price: 29 }
+];
+
+/***********************
+ APP
+************************/
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+
+  const [tab, setTab] = useState("home");
+  const [selectedRink, setSelectedRink] = useState(null);
+  const [chat, setChat] = useState({});
+  const [msg, setMsg] = useState("");
+
+  const [plan, setPlan] = useState("free");
+
+  /***********************
+ AUTH (REPLACE WITH FIREBASE AUTH)
+************************/
+  const login = () => {
+    if (!email) return;
+    setUser({ email });
+    localStorage.setItem("user", email);
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.clear();
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem("user");
+    if (saved) setUser({ email: saved });
+  }, []);
+
+  /***********************
+ STRIPE SUBSCRIPTION FLOW
+************************/
+  const subscribe = async (planId) => {
+    const res = await createStripeCheckout(planId);
+    window.location.href = res.url;
+  };
+
+  /***********************
+ CHAT (replace with Firestore realtime)
+************************/
+  const sendMessage = () => {
+    if (!msg) return;
+
+    setChat(prev => {
+      const current = prev["global"] || [];
+      return {
+        ...prev,
+        global: [...current, { user: user?.email, msg }]
+      };
+    });
+
+    setMsg("");
+  };
+
+  /***********************
+ UI
+************************/
+  return (
+    <div style={{ fontFamily: "Arial", background: "#0a0a0a", color: "white", minHeight: "100vh", padding: 20 }}>
+
+      {/* HEADER */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h1>HockeyHub SaaS (LiveBarn + Hudl Clone)</h1>
+
+        {!user ? (
+          <div style={{ display: "flex", gap: 10 }}>
+            <input placeholder="email" onChange={e => setEmail(e.target.value)} />
+            <button onClick={login}><LogIn size={16} /></button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 10 }}>
+            <span>{user.email}</span>
+            <span>Plan: {plan}</span>
+            <button onClick={logout}><LogOut /></button>
+          </div>
+        )}
+      </div>
+
+      {/* NAV */}
+      <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+        {["home", "streams", "billing", "chat"].map(t => (
+          <button key={t} onClick={() => setTab(t)}>{t}</button>
+        ))}
+      </div>
+
+      {/* HOME */}
+      {tab === "home" && (
+        <div>
+          <h2>Production SaaS Platform</h2>
+          <p>Live streaming + payments + chat + future AI highlights + team tools</p>
+        </div>
+      )}
+
+      {/* STREAMS */}
+      {tab === "streams" && (
+        <div>
+          {rinks.map(r => (
+            <div key={r.id} style={{ border: "1px solid #333", marginTop: 10, padding: 10 }}>
+              <h3>{r.name}</h3>
+              <p>{r.location}</p>
+              <button onClick={() => setSelectedRink(r)}><Play /> Watch</button>
+            </div>
+          ))}
+
+          {selectedRink && (
+            <iframe
+              title="stream"
+              src={selectedRink.stream}
+              style={{ width: "100%", height: 400, marginTop: 20 }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* BILLING (REAL STRIPE FLOW READY) */}
+      {tab === "billing" && (
+        <div>
+          {plans.map(p => (
+            <div key={p.id} style={{ border: "1px solid #333", padding: 10, marginTop: 10 }}>
+              <h3>{p.name}</h3>
+              <p>${p.price}/month</p>
+              <button onClick={() => subscribe(p.id)}>
+                <CreditCard /> Subscribe
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* CHAT (REALTIME READY) */}
+      {tab === "chat" && (
+        <div>
+          <h3>Global Chat</h3>
+
+          <div style={{ border: "1px solid #333", height: 200, overflowY: "scroll" }}>
+            {(chat["global"] || []).map((m, i) => (
+              <p key={i}><b>{m.user}:</b> {m.msg}</p>
+            ))}
+          </div>
+
+          <input value={msg} onChange={e => setMsg(e.target.value)} />
+          <button onClick={sendMessage}>Send</button>
+        </div>
+      )}
+
+    </div>
+  );
+}
